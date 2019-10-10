@@ -1,7 +1,7 @@
 FROM busybox:latest
 
-RUN groupadd -g 1000 somegroup
-RUN useradd -m -u 1000 someuser
+RUN addgroup somegroup
+RUN adduser -G somegroup someuser
 USER someuser
 ADD ./someFile.txt /tmp/
 

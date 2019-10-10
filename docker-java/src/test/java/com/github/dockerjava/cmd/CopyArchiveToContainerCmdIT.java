@@ -1,23 +1,22 @@
 package com.github.dockerjava.cmd;
 
-import com.github.dockerjava.api.command.CopyArchiveToContainerCmd;
-import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.*;
+import com.github.dockerjava.api.command.*;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.core.command.WaitContainerResultCallback;
+import com.github.dockerjava.core.command.*;
 import com.github.dockerjava.core.util.CompressArchiveUtil;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
@@ -108,6 +107,89 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
 
         // cleanup dir
         FileUtils.deleteDirectory(localDir.toFile());
+    }
+    
+    @Test
+    public void copyFileWithoutArchiveMode() throws Exception {
+      // test that a file copied without archive mode enabled (the default) 
+      // that the uid/gid maps will not be preserved, the file should belong to someone
+      // other than someuser:somegroup
+
+      // create the image
+      File baseDir = new File(Thread.currentThread().getContextClassLoader()
+        .getResource("testCopyFileWithArchiveMode").getFile());
+      
+      String imageId = dockerRule.buildImage(baseDir);
+
+      // create the container
+      CreateContainerResponse container = dockerRule.getClient().createContainerCmd(imageId)
+          .withName("copyFileWithoutArchiveMode" + dockerRule.getKind())
+          .exec();
+      
+      // start the container
+      dockerRule.getClient().startContainerCmd(container.getId()).exec();
+
+      // copy file to container
+      dockerRule.getClient().copyArchiveToContainerCmd(container.getId())
+      .withRemotePath("/tmp")
+      .withHostResource("src/test/resources/testCopyFileWithArchiveMode/someFile.txt")
+      .exec();
+      
+      // verify ownership of the file
+      ExecCreateCmdResponse execCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
+          .withAttachStdout(true)
+          .withUser("root")
+          .withCmd("stat", "-c", "\"%U %G\" /tmp/someFile.txt")
+          .exec();
+      
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      dockerRule.getClient().execStartCmd(execCreateCmdResponse.getId())
+        .exec(new ExecStartResultCallback(out, System.err))
+        .awaitCompletion();
+
+      assertTrue(out.toString().contains("root root"));
+      
+    }
+    
+    @Test
+    public void copyFileWithArchiveMode() throws Exception {
+        // test that a file belonging to someone other than root:root
+        // which is then copied with archive mode does not belong to root:root
+      
+        // create the image
+        File baseDir = new File(Thread.currentThread().getContextClassLoader()
+          .getResource("testCopyFileWithArchiveMode").getFile());
+        
+        String imageId = dockerRule.buildImage(baseDir);
+
+        // create the container
+        CreateContainerResponse container = dockerRule.getClient().createContainerCmd(imageId)
+            .withName("copyFileWithArchiveMode" + dockerRule.getKind())
+            .exec();
+        
+        // start the container
+        dockerRule.getClient().startContainerCmd(container.getId()).exec();
+
+        // copy file to container
+        dockerRule.getClient().copyArchiveToContainerCmd(container.getId())
+        .withRemotePath("/tmp")
+        .withHostResource("src/test/resources/testCopyFileWithArchiveMode/someFile.txt")
+        .withArchiveMode(true)
+        .exec();
+        
+        // verify ownership of the file
+        ExecCreateCmdResponse execCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
+            .withAttachStdout(true)
+            .withUser("root")
+            .withCmd("stat", "-c", "\"%U %G\" /tmp/someFile.txt")
+            .exec();
+        
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        dockerRule.getClient().execStartCmd(execCreateCmdResponse.getId())
+          .exec(new ExecStartResultCallback(out, System.err))
+          .awaitCompletion();
+
+        assertTrue(out.toString().contains("someuser somegoup"));
     }
     
     @Test

@@ -1,7 +1,7 @@
-FROM busybox:latest
+FROM alpine:latest
 
-RUN ['/bin/busybox','addgroup','somegroup']
-RUN ['/bin/busybox','adduser','-G','somegroup','someuser']
+RUN addgroup somegroup
+RUN adduser -G somegroup -D someuser
 USER someuser
 
 ADD ./someFile.txt /tmp/

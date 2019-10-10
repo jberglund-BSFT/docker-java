@@ -118,6 +118,8 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
       // create the container
       CreateContainerResponse container = dockerRule.getClient().createContainerCmd("busybox")
           .withName("copyFileWithoutArchiveMode" + dockerRule.getKind())
+          .withUser("root")
+          .withCmd("top")
           .exec();
       
       // start the container
@@ -182,6 +184,8 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
       // create the container
       CreateContainerResponse container = dockerRule.getClient().createContainerCmd("busybox")
           .withName("copyFileWithArchiveMode" + dockerRule.getKind())
+          .withUser("root")
+          .withCmd("top")
           .exec();
       
       // start the container

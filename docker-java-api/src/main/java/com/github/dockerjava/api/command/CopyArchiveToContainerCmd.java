@@ -15,7 +15,7 @@ public interface CopyArchiveToContainerCmd extends SyncDockerCmd<Void> {
     boolean isNoOverwriteDirNonDir();
 
     boolean isDirChildrenOnly();
-    
+
     boolean isArchiveMode();
 
     /**
@@ -66,9 +66,10 @@ public interface CopyArchiveToContainerCmd extends SyncDockerCmd<Void> {
      *
      * @param archiveMode
      *            if UID/GID maps should be copied
+     *  @since 1.39
      */
     CopyArchiveToContainerCmd withArchiveMode(boolean archiveMode);
-    
+
     String getRemotePath();
 
     CopyArchiveToContainerCmd withRemotePath(String remotePath);

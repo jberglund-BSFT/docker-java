@@ -116,44 +116,18 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
       // other than someuser:somegroup
 
       // create the container
-      CreateContainerResponse container = dockerRule.getClient().createContainerCmd("busybox")
+      File baseDir = new File(Thread.currentThread().getContextClassLoader()
+          .getResource("testCopyFileWithArchiveMode").getFile());
+      String imageId = dockerRule.buildImage(baseDir);
+
+      CreateContainerResponse container = dockerRule.getClient().createContainerCmd(imageId)
           .withUser("root")
           .withCmd("sleep", "9999")
           .exec();
       
       // start the container
       dockerRule.getClient().startContainerCmd(container.getId()).exec();
-      
-      //add group
-      ExecCreateCmdResponse addGroupCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("addgroup", "somegroup")
-          .withUser("root")
-          .exec();
-      dockerRule.getClient().execStartCmd(addGroupCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-           .awaitCompletion();
-      
-      //add user
-      ExecCreateCmdResponse addUserCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("adduser", "-G", "somegroup", "someuser")
-          .withUser("root")
-          .exec();
-      dockerRule.getClient().execStartCmd(addUserCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-          .awaitCompletion();
-      
-      // touch a file
-      ExecCreateCmdResponse touchFileCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("touch","/tmp/someFile.txt")
-          .withUser("someuser")
-          .exec();
-      dockerRule.getClient().execStartCmd(touchFileCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-          .awaitCompletion();
-      
+
       // copy file to container
       dockerRule.getClient().copyArchiveToContainerCmd(container.getId())
           .withRemotePath("/tmp")
@@ -172,6 +146,7 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
           .exec(new ExecStartResultCallback(out, System.err))
           .awaitCompletion();
 
+      System.out.println(out.toString());
       assertTrue(out.toString().contains("root root"));
     }
     
@@ -181,43 +156,17 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
         // which is then copied with archive mode does not belong to root:root
       
       // create the container
-      CreateContainerResponse container = dockerRule.getClient().createContainerCmd("busybox")
+      File baseDir = new File(Thread.currentThread().getContextClassLoader()
+          .getResource("testCopyFileWithArchiveMode").getFile());
+      String imageId = dockerRule.buildImage(baseDir);
+
+      CreateContainerResponse container = dockerRule.getClient().createContainerCmd(imageId)
           .withUser("root")
           .withCmd("sleep", "9999")
           .exec();
       
       // start the container
       dockerRule.getClient().startContainerCmd(container.getId()).exec();
-      
-      //add group
-      ExecCreateCmdResponse addGroupCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("addgroup", "somegroup")
-          .withUser("root")
-          .exec();
-      dockerRule.getClient().execStartCmd(addGroupCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-           .awaitCompletion();
-      
-      //add user
-      ExecCreateCmdResponse addUserCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("adduser", "-G", "somegroup", "someuser")
-          .withUser("root")
-          .exec();
-      dockerRule.getClient().execStartCmd(addUserCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-          .awaitCompletion();
-      
-      // touch a file
-      ExecCreateCmdResponse touchFileCreateCmdResponse = dockerRule.getClient().execCreateCmd(container.getId())
-          .withAttachStdout(true)
-          .withCmd("touch","/tmp/someFile.txt")
-          .withUser("someuser")
-          .exec();
-      dockerRule.getClient().execStartCmd(touchFileCreateCmdResponse.getId())
-          .exec(new ExecStartResultCallback(System.out, System.err))
-          .awaitCompletion();
       
       // copy file to container
       dockerRule.getClient().copyArchiveToContainerCmd(container.getId())
@@ -238,6 +187,7 @@ public class CopyArchiveToContainerCmdIT extends CmdIT {
           .exec(new ExecStartResultCallback(out, System.err))
           .awaitCompletion();
 
+        System.out.println(out.toString());
         assertTrue(out.toString().contains("someuser somegoup"));
     }
     
